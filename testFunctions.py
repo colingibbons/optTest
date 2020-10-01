@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.spatial.distance import euclidean
 from scipy.spatial.distance import sqeuclidean
-from sklearn.metrics import pairwise_distances
+from sklearn.metrics.pairwise import euclidean_distances
 
 
 # function to calculate Euclidean distance between two input vectors from scipy
@@ -12,7 +12,7 @@ def euclideanOne(x, y):
 
 # function to calculate Euclidean distances from sklearn
 def euclideanTwo(x, y):
-    output = pairwise_distances()
+    output = euclidean_distances()
     return output
 
 
@@ -23,7 +23,7 @@ def squaredEuclideanOne(x, y):
 
 
 def squaredEuclideanTwo(x, y):
-    output = sqeuclidean(x, y)
+    output = euclidean_distances(x, y, squared=True)
     return output
 
 
