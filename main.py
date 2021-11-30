@@ -1,11 +1,10 @@
 import sys
 import os
 import numpy as np
-from pathlib import Path
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg
-from mpl_toolkits import mplot3d
+from matplotlib import animation
 
 from PyQt5.QtWidgets import *
 
@@ -34,8 +33,8 @@ class Ui(QDialog):
         self.pushButtonNext = QPushButton('Next Slice')
         self.pushButtonNext.clicked.connect(self.on_pushButtonNext_clicked)
 
-        self.pushButtonCustom = QPushButton('Custom Slice')
-        self.pushButtonCustom.clicked.connect(self.on_pushButtonCustom_clicked)
+        self.pushButtonSave = QPushButton('Save Figures')
+        self.pushButtonSave.clicked.connect(self.on_pushButtonSave_clicked)
 
         self.label = QLabel("Current Slice: ")
 
@@ -47,7 +46,7 @@ class Ui(QDialog):
         inputLayout.addWidget(self.textEditSliceIndex)
         inputLayout.addWidget(self.pushButtonPrevious)
         inputLayout.addWidget(self.pushButtonNext)
-        inputLayout.addWidget(self.pushButtonCustom)
+        inputLayout.addWidget(self.pushButtonSave)
 
         # add sublayouts to window
         windowLayout.addWidget(self.canvas)
@@ -57,14 +56,14 @@ class Ui(QDialog):
         self.textEditSliceIndex.setReadOnly(False)
         self.pushButtonPrevious.setEnabled(False)
         self.pushButtonNext.setEnabled(False)
-        self.pushButtonCustom.setEnabled(False)
+        self.pushButtonSave.setEnabled(False)
 
         # save layout changes
         self.setLayout(windowLayout)
 
     def on_pushButtonLoadData_clicked(self):
         # let user select directory where Z-slice data is located
-        self.projectDirectory = QFileDialog.getExistingDirectory(self, 'Select a folder containg Z-Slice text files')
+        self.projectDirectory = QFileDialog.getExistingDirectory(self, 'Select a folder containing Z-Slice text files')
 
         # don't crash the program if the user fails to pick a folder
         if not self.projectDirectory:
@@ -75,13 +74,18 @@ class Ui(QDialog):
         self.index = 1
         self.numFiles = len(self.ZFiles)
 
+        # make directory to store z-slice image representations
+        if not os.path.exists(self.projectDirectory.replace('Z-Cases', 'Z-Case-Images/')):
+            os.mkdir(self.projectDirectory.replace('Z-Cases', 'Z-Case-Images/'))
+
         # load in data from the first file and generate/display plot
         self.updatePlot()
+
 
         # Enable buttons now that data is loaded
         self.pushButtonPrevious.setEnabled(True)
         self.pushButtonNext.setEnabled(True)
-        self.pushButtonCustom.setEnabled(True)
+        self.pushButtonSave.setEnabled(True)
 
 
     def on_pushButtonPrevious_clicked(self):
@@ -100,34 +104,51 @@ class Ui(QDialog):
         else:
             print("Max value reached.")
 
-    def on_pushButtonCustom_clicked(self):
+    def on_pushButtonSave_clicked(self):
         print("Feature has not yet been defined")
 
-    # function that updates the plot, called for all buttons
+    # function that updates the plot, called initially and when previous/next buttons pressed
     def updatePlot(self):
         # get data from appropriate text file
+
+        # get Z-Value for graph title
+        ZValue = str(self.ZFiles[self.index - 1])
+        ZValue = ZValue.replace('.txt', '')
+
         currentFilePath = str(self.projectDirectory) + '/' + str(self.ZFiles[self.index - 1])
         data = np.loadtxt(currentFilePath, delimiter='\t', skiprows=1)
 
-        # create arrays for each of the parameters
         x = []
         y = []
         objective = []
 
         # sort data into arrays
         for i in range(len(data)):
-            x.append(data[i][0])
-            y.append(data[i][1])
-            objective.append(data[i][2])
+            if data[i][2] != 1000000:
+                x.append(data[i][0])
+                y.append(data[i][1])
+                objective.append(data[i][2])
+
 
         # clear existing figure and replace it with new slice data
         self.figure.clear()
-        ax = plt.axes(projection='3d')
-        ax.scatter3D(x, y, objective, c=objective, cmap='Reds')
 
-        ax.set(xlabel='$X$', ylabel='$Y$', zlabel='$Objective Function$')
+        # initialize 2D scatter plot for data, with color mapping defined by objective function value
+        plt.scatter(x, y, c=objective, vmin=0, vmax=1500)
+        plt.colorbar()
+
+        # set color map and title/labels
+        plt.set_cmap('Spectral')
+        plt.title("Z = " + ZValue)
+        plt.xlabel('X')
+        plt.ylabel('Y')
+        plt.draw()
+
+        print(self.projectDirectory.replace('Z-Cases', 'Z-Case-Images/') + ZValue + '_plot.txt')
+        plt.savefig(self.projectDirectory.replace('Z-Cases', 'Z-Case-Images/') + ZValue + '_plot.png')
 
         self.canvas.draw()
+
 
         self.textEditSliceIndex.setText(str(self.index) + '/' + str(self.numFiles))
 
