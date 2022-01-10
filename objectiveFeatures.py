@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import os
 
 # hardcoded path to feature text files
-directory = 'C:\\Users\\cogibbo\\Desktop\\us-mri-fusion-data\\phantomCases\\Feature Analysis\\'
+directory = 'C:\\Users\\colin\\Desktop\\school docs\\Research\\us-mri-fusion-data\\phantomCases\\Feature Analysis\\'
 
 # list of ultrasound planes by location and "true" Z-offset
 caseDict = {
@@ -14,6 +14,9 @@ caseDict = {
     '4cm': 53,
     '5cm': 41
 }
+
+labelList = []
+dataList = []
 
 # loop through each text file
 for textFile in os.listdir(directory):
@@ -27,6 +30,11 @@ for textFile in os.listdir(directory):
     # load the numerical data into an array
     data = np.loadtxt(path, skiprows=2, delimiter=', ')
 
+    # store the data from this text file and make note of the ultrasound scan it corresponds to
+    # TODO also save the name of the feature for use in legend
+    labelList.append(caseLabel)
+    dataList.append(data)
+
     # set up plot
     fig = plt.figure()
     plt.title(f'{featureType} vs. Z Value, {caseLabel}')
@@ -36,8 +44,28 @@ for textFile in os.listdir(directory):
     plt.plot(data[:, 0], data[:, 1], c='red')
     plt.plot(data[:, 0], data[:, 2], c='green')
     plt.plot(data[:, 0], data[:, 3], c='purple')
+    # plot combined correlation curve
+    plt.plot(data[:, 0], data[:, 4], c='black')
     # add a vertical axis line corresponding with the "true" Z-location of this US plane relative to MRI model
     plt.axvline(x=caseDict[caseLabel])
     plt.show()
 
-    print('stop')
+    print('pause')
+
+# TODO potentially consider way of plotting all features from same scan on same plot - some features
+# TODO are scaled differently and can't be viewed with features that have larger absolute values
+for case in caseDict:
+
+    plt.figure()
+    plt.title(f'Feature Correlation with Z Value, {case}')
+    plt.ylabel('Calculated Feature Value')
+    plt.xlabel('Z Value')
+    for label, data in zip(labelList, dataList):
+        if label == case:
+            plt.plot(data[:, 0], data[:, 1], c='red')
+            plt.plot(data[:, 0], data[:, 2], c='green')
+            plt.plot(data[:, 0], data[:, 3], c='purple')
+
+plt.show()
+
+print('end')
